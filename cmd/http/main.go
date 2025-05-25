@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
 	bookHandler "gogosing/internal/handler/book"
 	"gogosing/internal/router"
 	bookStore "gogosing/internal/store/book"
+	"os"
 
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/joho/godotenv"
 	"log"
 	"net/http"
 )
@@ -14,7 +17,7 @@ import (
 var db *sql.DB
 
 func main() {
-
+	loadEnv()
 	connectDB()
 
 	store := bookStore.NewInMemoryBookStore()
@@ -26,9 +29,22 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", serverRouter))
 }
 
+func loadEnv() {
+	if err := godotenv.Load(); err != nil {
+		log.Fatal("Error loading .env file")
+	}
+}
+
 func connectDB() {
+	user := os.Getenv("DB_USER")
+	pass := os.Getenv("DB_PASS")
+	host := os.Getenv("DB_HOST")
+	port := os.Getenv("DB_PORT")
+	name := os.Getenv("DB_NAME")
+
 	var err error
-	dsn := "hoseok:1234@tcp(localhost:3306)/gogosing"
+
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, pass, host, port, name)
 	db, err = sql.Open("mysql", dsn)
 	if err != nil {
 		log.Fatal(err)
