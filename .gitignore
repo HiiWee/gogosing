@@ -23,3 +23,23 @@ go.work.sum
 
 # env file
 .env
+
+# IDE
+.idea/
+.vscode
+*.code-workspace
+
+# Mac
+.DS_Store
+*/.DS_Store
+
+# local files
+var
+
+# make lint-full install golangci to ./bin/
+bin/
+
+.env.local
+http-api
+coverage.out
+.envrc
