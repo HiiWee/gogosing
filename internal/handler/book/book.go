@@ -53,7 +53,7 @@ func (h *BookHandler) CreateBook(w http.ResponseWriter, r *http.Request) {
 func (h *BookHandler) UpdateBook(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
-	var updatedBook model.Book // 요청 본문에서 업데이트할 필드만 받을 수 있도록
+	var updatedBook model.Book
 	err := json.NewDecoder(r.Body).Decode(&updatedBook)
 
 	err = h.Store.UpdateBook(params["id"], updatedBook)

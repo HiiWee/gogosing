@@ -24,8 +24,8 @@ func NewInMemoryBookStore() *InMemoryBookStore {
 }
 
 func (store *InMemoryBookStore) GetBooks() []model.Book {
-	bookList := make([]model.Book, 0, len(store.books)) // 전역 books 맵의 크기로 슬라이스 초기화
-	for _, book := range store.books {                  // 전역 books 맵 순회
+	bookList := make([]model.Book, 0, len(store.books))
+	for _, book := range store.books {
 		bookList = append(bookList, book)
 	}
 
