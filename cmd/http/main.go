@@ -7,20 +7,20 @@ import (
 	bookStore "gogosing/internal/store/book"
 	"os"
 
-	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
+	"gorm.io/driver/mysql"
+	"gorm.io/gorm"
 	"log"
 	"net/http"
 )
 
-var db *sql.DB
+var db *gorm.DB
 
 func main() {
 	loadEnv()
 	connectDB()
 
-	store := bookStore.NewInMemoryBookStore()
+	store := bookStore.NewGormBookStore(db)
 	handler := bookHandler.NewBookHandler(store)
 
 	serverRouter := router.CreateRouter(handler)
@@ -42,17 +42,10 @@ func connectDB() {
 	port := os.Getenv("DB_PORT")
 	name := os.Getenv("DB_NAME")
 
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", user, pass, host, port, name)
 	var err error
-
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", user, pass, host, port, name)
-	db, err = sql.Open("mysql", dsn)
+	db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
-	}
-	defer db.Close()
-
-	// 연결 확인
-	if err := db.Ping(); err != nil {
-		log.Fatal("Cannot connect to database:", err)
 	}
 }
