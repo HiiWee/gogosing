@@ -5,14 +5,6 @@ import (
 	"gogosing/internal/model"
 )
 
-type BookStore interface {
-	GetBooks() []model.Book
-	GetBook(ID string) (model.Book, bool)
-	CreateBook(requestedBook model.Book) error
-	UpdateBook(ID string, requestedBook model.Book) error
-	DeleteBook(ID string) error
-}
-
 type InMemoryBookStore struct {
 	books map[string]model.Book
 }

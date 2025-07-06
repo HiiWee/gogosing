@@ -1,19 +1,25 @@
 package book
 
 import (
-	"gogosing/internal/model"
-	bookStore "gogosing/internal/store/book"
-
 	"encoding/json"
 	"github.com/gorilla/mux"
+	"gogosing/internal/model"
 	"net/http"
 )
 
-type BookHandler struct {
-	Store bookStore.BookStore
+type BookStore interface {
+	GetBooks() []model.Book
+	GetBook(ID string) (model.Book, bool)
+	CreateBook(requestedBook model.Book) error
+	UpdateBook(ID string, requestedBook model.Book) error
+	DeleteBook(ID string) error
 }
 
-func NewBookHandler(store bookStore.BookStore) *BookHandler {
+type BookHandler struct {
+	Store BookStore
+}
+
+func NewBookHandler(store BookStore) *BookHandler {
 	return &BookHandler{Store: store}
 }
 

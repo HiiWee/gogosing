@@ -20,8 +20,8 @@ func main() {
 	loadEnv()
 	connectDB()
 
-	store := bookStore.NewInMemoryBookStore()
-	handler := bookHandler.NewBookHandler(store)
+	inMemoryBookStore := bookStore.NewInMemoryBookStore()
+	handler := bookHandler.NewBookHandler(inMemoryBookStore)
 
 	serverRouter := router.CreateRouter(handler)
 
