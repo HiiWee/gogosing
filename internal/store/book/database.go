@@ -85,7 +85,7 @@ func (store *MySQLBookStore) GetBooks() []model.Book {
 }
 
 func (store *MySQLBookStore) GetBook(ID string) (model.Book, bool) {
-	row := store.db.QueryRow("select id, title, author from books where id = ?", ID)
+	row := store.db.QueryRow("SELECT id, title, author FROM books WHERE id = ?", ID)
 
 	book := model.Book{}
 	err := row.Scan(&book.ID, &book.Title, &book.Author)
@@ -141,7 +141,7 @@ func (store *MySQLBookStore) UpdateBook(ID string, requestedBook model.Book) err
 }
 
 func (store *MySQLBookStore) DeleteBook(ID string) error {
-	result, err := store.db.Exec("delete from books where id = ?", ID)
+	result, err := store.db.Exec("DELETE FROM books WHERE id = ?", ID)
 
 	if count, _ := result.RowsAffected(); count == 0 {
 		return errors.New("book does not exist")
