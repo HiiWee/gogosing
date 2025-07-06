@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/joho/godotenv"
 	"gogosing/internal/model"
 	"log"
 	"os"
@@ -15,17 +14,10 @@ type MySQLBookStore struct {
 }
 
 func NewMySQLBookStore() *MySQLBookStore {
-	loadEnv()
 	store := MySQLBookStore{}
 	store.connectDB()
 
 	return &store
-}
-
-func loadEnv() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
-	}
 }
 
 func (store *MySQLBookStore) connectDB() {
