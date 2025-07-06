@@ -21,6 +21,13 @@ func main() {
 	connectDB()
 
 	dbBookStore := bookStore.NewMySQLBookStore()
+
+	defer func() {
+		if err := dbBookStore.Close(); err != nil {
+			log.Printf("Error closing database: %v", err)
+		}
+	}()
+
 	handler := bookHandler.NewBookHandler(dbBookStore)
 
 	serverRouter := router.CreateRouter(handler)
