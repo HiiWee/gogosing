@@ -13,14 +13,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
-type Event struct {
+type ConsumedEvent struct {
 	from    string
 	message string
 }
-
 type Listener struct {
-	events   chan Event
-	receiver Receiver
+	eventChannel chan ConsumedEvent
+	receiver     Receiver
 }
 
 type Receiver interface {
@@ -29,8 +28,8 @@ type Receiver interface {
 
 func NewListener(r Receiver) *Listener {
 	return &Listener{
-		events:   make(chan Event),
-		receiver: r,
+		eventChannel: make(chan ConsumedEvent),
+		receiver:     r,
 	}
 }
 
@@ -57,10 +56,13 @@ func (l *Listener) listen(ctx context.Context, url string) {
 		}
 
 		for _, msg := range out.Messages {
-			l.events <- Event{
-				from:    "listener",
-				message: *msg.Body,
+			var event ConsumedEvent
+			err := json.Unmarshal([]byte(*msg.Body), &event)
+
+			if err != nil {
+				log.Printf("Unmarshal error: %v", err)
 			}
+			l.eventChannel <- event
 		}
 	}
 }
@@ -70,17 +72,20 @@ func (l *Listener) process(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
-		case e := <-l.events:
-			l.processEvent(ctx, e)
+		case e := <-l.eventChannel:
+			l.processEvent(ctx, &e)
 		}
 	}
 }
 
-func (l *Listener) processEvent(ctx context.Context, e Event) {
+func (l *Listener) processEvent(ctx context.Context, e *ConsumedEvent) {
 	discordWebhook := mustEnv("DISCORD_WEBHOOK_URL")
 
 	fmt.Println("message is processed by " + e.from)
-	discordPayload := map[string]string{"content": e.message}
+	discordPayload := map[string]string{
+		"content": e.message,
+		"from":    e.from,
+	}
 
 	b, _ := json.Marshal(discordPayload)
 	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, discordWebhook, bytes.NewReader(b))
@@ -88,7 +93,7 @@ func (l *Listener) processEvent(ctx context.Context, e Event) {
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		log.Printf("Error processing event: %v", err)
+		log.Fatalf("Error processing event: %v", err)
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)

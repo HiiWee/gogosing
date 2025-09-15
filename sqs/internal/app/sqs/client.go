@@ -32,6 +32,10 @@ func (c *Client) ReceiveMessage(ctx context.Context, params *sqs.ReceiveMessageI
 	return c.client.ReceiveMessage(ctx, params)
 }
 
+func (c *Client) SendMessage(ctx context.Context, params *sqs.SendMessageInput) (*sqs.SendMessageOutput, error) {
+	return c.client.SendMessage(ctx, params)
+}
+
 func mustEnv(k string) string {
 	v := os.Getenv(k)
 	if v == "" {
