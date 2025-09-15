@@ -1,4 +1,4 @@
-module sqs
+module sqs-example
 
 go 1.23
 
