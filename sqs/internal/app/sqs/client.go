@@ -36,6 +36,10 @@ func (c *Client) SendMessage(ctx context.Context, params *sqs.SendMessageInput) 
 	return c.client.SendMessage(ctx, params)
 }
 
+func (c *Client) DeleteMessage(ctx context.Context, params *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error) {
+	return c.client.DeleteMessage(ctx, params)
+}
+
 func mustEnv(k string) string {
 	v := os.Getenv(k)
 	if v == "" {

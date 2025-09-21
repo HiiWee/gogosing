@@ -14,6 +14,11 @@ import (
 )
 
 type ConsumedEvent struct {
+	ReceiptHandle *string
+	body          ConsumedMessage
+}
+
+type ConsumedMessage struct {
 	From    string `json:"from"`
 	Message string `json:"message"`
 }
@@ -24,6 +29,7 @@ type Listener struct {
 
 type Receiver interface {
 	ReceiveMessage(ctx context.Context, params *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error)
+	DeleteMessage(ctx context.Context, params *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error)
 }
 
 func NewListener(r Receiver) *Listener {
@@ -35,7 +41,7 @@ func NewListener(r Receiver) *Listener {
 
 func (l *Listener) Listen(ctx context.Context, url string) {
 	go l.listen(ctx, url)
-	go l.process(ctx)
+	go l.process(ctx, url)
 }
 
 func (l *Listener) listen(ctx context.Context, url string) {
@@ -56,35 +62,38 @@ func (l *Listener) listen(ctx context.Context, url string) {
 		}
 
 		for _, msg := range out.Messages {
-			var event ConsumedEvent
+			var event ConsumedMessage
 			err := json.Unmarshal([]byte(*msg.Body), &event)
 
 			if err != nil {
 				log.Printf("Unmarshal error: %v", err)
 			}
-			l.eventChannel <- event
+			l.eventChannel <- ConsumedEvent{
+				ReceiptHandle: msg.ReceiptHandle,
+				body:          event,
+			}
 		}
 	}
 }
 
-func (l *Listener) process(ctx context.Context) {
+func (l *Listener) process(ctx context.Context, url string) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case e := <-l.eventChannel:
-			l.processEvent(ctx, &e)
+			l.processEvent(ctx, &e, url)
 		}
 	}
 }
 
-func (l *Listener) processEvent(ctx context.Context, e *ConsumedEvent) {
+func (l *Listener) processEvent(ctx context.Context, e *ConsumedEvent, url string) {
 	discordWebhook := mustEnv("DISCORD_WEBHOOK_URL")
 
-	fmt.Println("message is processed by " + e.From)
+	fmt.Println("message is processed by " + e.body.From)
 	discordPayload := map[string]string{
-		"content": e.Message,
-		"from":    e.From,
+		"content": e.body.Message,
+		"from":    e.body.From,
 	}
 
 	b, _ := json.Marshal(discordPayload)
@@ -102,5 +111,13 @@ func (l *Listener) processEvent(ctx context.Context, e *ConsumedEvent) {
 		log.Printf("Error processing event: %d %s", resp.StatusCode, string(body))
 	}
 
-	log.Printf("posted to Discord: %s", e.Message)
+	log.Printf("posted to Discord: %s", e.body.Message)
+
+	_, err = l.receiver.DeleteMessage(ctx, &sqs.DeleteMessageInput{
+		QueueUrl:      &url,
+		ReceiptHandle: e.ReceiptHandle,
+	})
+	if err != nil {
+		log.Printf("Error deleting event: %v", err)
+	}
 }
