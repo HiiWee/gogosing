@@ -10,8 +10,8 @@ import (
 )
 
 type PublishEvent struct {
-	from    string
-	message string
+	From    string `json:"from"`
+	Message string `json:"message"`
 }
 
 type Producer struct {
@@ -28,14 +28,14 @@ func NewProducer(sender Sender) *Producer {
 	}
 }
 
-func (p *Producer) SendMessage(ctx context.Context, event *PublishEvent) error {
+func (p *Producer) SendMessage(ctx context.Context, event *PublishEvent, queueURL string) error {
 	payload, err := json.Marshal(event)
 
 	if err != nil {
 		return err
 	}
 
-	_, err = p.sender.SendMessage(ctx, &sqs.SendMessageInput{MessageBody: aws.String(string(payload))})
+	_, err = p.sender.SendMessage(ctx, &sqs.SendMessageInput{MessageBody: aws.String(string(payload)), QueueUrl: aws.String(queueURL)})
 
 	if err != nil {
 		log.Printf("failed to send message: %v", err)

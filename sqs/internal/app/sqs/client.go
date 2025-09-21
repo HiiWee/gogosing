@@ -13,7 +13,7 @@ type Client struct {
 	client *sqs.Client
 }
 
-func New(ctx context.Context) *Client {
+func NewClient(ctx context.Context) *Client {
 	region := mustEnv("AWS_REGION")
 
 	awsCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))

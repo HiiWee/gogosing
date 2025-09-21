@@ -14,8 +14,8 @@ import (
 )
 
 type ConsumedEvent struct {
-	from    string
-	message string
+	From    string `json:"from"`
+	Message string `json:"message"`
 }
 type Listener struct {
 	eventChannel chan ConsumedEvent
@@ -81,10 +81,10 @@ func (l *Listener) process(ctx context.Context) {
 func (l *Listener) processEvent(ctx context.Context, e *ConsumedEvent) {
 	discordWebhook := mustEnv("DISCORD_WEBHOOK_URL")
 
-	fmt.Println("message is processed by " + e.from)
+	fmt.Println("message is processed by " + e.From)
 	discordPayload := map[string]string{
-		"content": e.message,
-		"from":    e.from,
+		"content": e.Message,
+		"from":    e.From,
 	}
 
 	b, _ := json.Marshal(discordPayload)
@@ -102,5 +102,5 @@ func (l *Listener) processEvent(ctx context.Context, e *ConsumedEvent) {
 		log.Printf("Error processing event: %d %s", resp.StatusCode, string(body))
 	}
 
-	log.Printf("posted to Discord: %s", e.message)
+	log.Printf("posted to Discord: %s", e.Message)
 }
