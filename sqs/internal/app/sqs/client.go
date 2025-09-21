@@ -3,7 +3,6 @@ package sqs
 import (
 	"context"
 	"log"
-	"os"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -13,9 +12,7 @@ type Client struct {
 	client *sqs.Client
 }
 
-func NewClient(ctx context.Context) *Client {
-	region := mustEnv("AWS_REGION")
-
+func NewClient(ctx context.Context, region string) *Client {
 	awsCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
 	if err != nil {
 		log.Fatalf("load AWS config: %v", err)
@@ -38,12 +35,4 @@ func (c *Client) SendMessage(ctx context.Context, params *sqs.SendMessageInput) 
 
 func (c *Client) DeleteMessage(ctx context.Context, params *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error) {
 	return c.client.DeleteMessage(ctx, params)
-}
-
-func mustEnv(k string) string {
-	v := os.Getenv(k)
-	if v == "" {
-		log.Fatalf("missing env %s", k)
-	}
-	return v
 }

@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 	"sqs-example/internal/app/sqs"
+	"sqs-example/internal/app/util"
 	"syscall"
 	"time"
 
@@ -25,11 +26,8 @@ type App struct {
 }
 
 func New(ctx context.Context) *App {
-	queueURL := os.Getenv("SQS_QUEUE_URL")
-	if queueURL == "" {
-		slog.Error("SQS_QUEUE_URL environment variable not set")
-		return nil
-	}
+	queueURL := util.MustEnv("SQS_QUEUE_URL")
+	region := util.MustEnv("AWS_REGION")
 
 	app := &App{
 		lgr: slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
@@ -43,7 +41,7 @@ func New(ctx context.Context) *App {
 	slog.SetDefault(app.lgr)
 	signal.Notify(app.stop, syscall.SIGINT, syscall.SIGTERM)
 
-	client := sqs.NewClient(ctx)
+	client := sqs.NewClient(ctx, region)
 	app.producer = sqs.NewProducer(client)
 	app.listener = sqs.NewListener(client)
 	app.registerRoutes(ctx)

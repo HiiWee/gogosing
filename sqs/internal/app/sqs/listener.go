@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"sqs-example/internal/app/util"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -88,7 +89,7 @@ func (l *Listener) process(ctx context.Context, url string) {
 }
 
 func (l *Listener) processEvent(ctx context.Context, e *ConsumedEvent, url string) {
-	discordWebhook := mustEnv("DISCORD_WEBHOOK_URL")
+	discordWebhook := util.MustEnv("DISCORD_WEBHOOK_URL")
 
 	fmt.Println("message is processed by " + e.body.From)
 	discordPayload := map[string]string{
