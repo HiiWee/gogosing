@@ -1,4 +1,4 @@
-package sqs
+package listener
 
 import (
 	"context"
@@ -27,10 +27,6 @@ func NewClient(ctx context.Context, region string) *Client {
 
 func (c *Client) ReceiveMessage(ctx context.Context, params *sqs.ReceiveMessageInput) (*sqs.ReceiveMessageOutput, error) {
 	return c.client.ReceiveMessage(ctx, params)
-}
-
-func (c *Client) SendMessage(ctx context.Context, params *sqs.SendMessageInput) (*sqs.SendMessageOutput, error) {
-	return c.client.SendMessage(ctx, params)
 }
 
 func (c *Client) DeleteMessage(ctx context.Context, params *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error) {

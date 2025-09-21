@@ -1,4 +1,4 @@
-package sqs
+package listener
 
 import (
 	"bytes"
