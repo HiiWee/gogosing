@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sqs-example/internal/app/sqs/processor"
 	"sqs-example/internal/app/util"
 	"syscall"
 )
@@ -31,8 +32,9 @@ func New(ctx context.Context) *App {
 	slog.SetDefault(app.lgr)
 	signal.Notify(app.stop, syscall.SIGINT, syscall.SIGTERM)
 
-	client := NewClient(ctx, region)
-	app.listener = NewListener(client)
+	c := NewClient(ctx, region)
+	p := processor.NewProcessor()
+	app.listener = NewListener(c, p)
 
 	return app
 }

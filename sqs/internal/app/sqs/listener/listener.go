@@ -1,31 +1,19 @@
 package listener
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
-	"io"
 	"log"
-	"net/http"
-	"sqs-example/internal/app/util"
+	"sqs-example/internal/app/sqs/processor"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
 )
 
-type ConsumedEvent struct {
-	ReceiptHandle *string
-	body          ConsumedMessage
-}
-
-type ConsumedMessage struct {
-	From    string `json:"from"`
-	Message string `json:"message"`
-}
 type Listener struct {
 	eventChannel chan ConsumedEvent
 	receiver     Receiver
+	processor    Processor
 }
 
 type Receiver interface {
@@ -33,10 +21,15 @@ type Receiver interface {
 	DeleteMessage(ctx context.Context, params *sqs.DeleteMessageInput) (*sqs.DeleteMessageOutput, error)
 }
 
-func NewListener(r Receiver) *Listener {
+type Processor interface {
+	ProcessMessage(ctx context.Context, m processor.SendingMessage) error
+}
+
+func NewListener(r Receiver, p Processor) *Listener {
 	return &Listener{
 		eventChannel: make(chan ConsumedEvent),
 		receiver:     r,
+		processor:    p,
 	}
 }
 
@@ -89,30 +82,7 @@ func (l *Listener) process(ctx context.Context, url string) {
 }
 
 func (l *Listener) processEvent(ctx context.Context, e *ConsumedEvent, url string) {
-	discordWebhook := util.MustEnv("DISCORD_WEBHOOK_URL")
-
-	fmt.Println("message is processed by " + e.body.From)
-	discordPayload := map[string]string{
-		"content": e.body.Message,
-		"from":    e.body.From,
-	}
-
-	b, _ := json.Marshal(discordPayload)
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, discordWebhook, bytes.NewReader(b))
-	req.Header.Set("Content-Type", "application/json")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		log.Fatalf("Error processing event: %v", err)
-	}
-	defer resp.Body.Close()
-	body, _ := io.ReadAll(resp.Body)
-
-	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-		log.Printf("Error processing event: %d %s", resp.StatusCode, string(body))
-	}
-
-	log.Printf("posted to Discord: %s", e.body.Message)
+	err := l.processor.ProcessMessage(ctx, &e.body)
 
 	_, err = l.receiver.DeleteMessage(ctx, &sqs.DeleteMessageInput{
 		QueueUrl:      &url,
