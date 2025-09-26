@@ -12,8 +12,8 @@ type Client struct {
 	client *sqs.Client
 }
 
-func NewClient(ctx context.Context, region string) *Client {
-	awsCfg, err := config.LoadDefaultConfig(ctx, config.WithRegion(region))
+func NewClient(region string) *Client {
+	awsCfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(region))
 	if err != nil {
 		log.Fatalf("load AWS config: %v", err)
 	}

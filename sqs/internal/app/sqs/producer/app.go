@@ -22,7 +22,7 @@ type App struct {
 	producer *Producer
 }
 
-func New(ctx context.Context) *App {
+func New() *App {
 	queueURL := util.MustEnv("SQS_QUEUE_URL")
 	region := util.MustEnv("AWS_REGION")
 
@@ -38,14 +38,14 @@ func New(ctx context.Context) *App {
 	slog.SetDefault(app.lgr)
 	signal.Notify(app.stop, syscall.SIGINT, syscall.SIGTERM)
 
-	client := NewClient(ctx, region)
+	client := NewClient(region)
 	app.producer = NewProducer(client)
-	app.registerRoutes(ctx)
+	app.registerRoutes()
 
 	return app
 }
 
-func (a *App) Run(ctx context.Context) {
+func (a *App) Run() {
 	server := http.Server{
 		Addr:    ":8080",
 		Handler: http.TimeoutHandler(a.r, 1*time.Second, "timed out"),

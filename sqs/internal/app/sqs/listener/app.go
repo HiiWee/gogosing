@@ -17,7 +17,7 @@ type App struct {
 	listener *Listener
 }
 
-func New(ctx context.Context) *App {
+func New() *App {
 	queueURL := util.MustEnv("SQS_QUEUE_URL")
 	region := util.MustEnv("AWS_REGION")
 
@@ -32,15 +32,15 @@ func New(ctx context.Context) *App {
 	slog.SetDefault(app.lgr)
 	signal.Notify(app.stop, syscall.SIGINT, syscall.SIGTERM)
 
-	c := NewClient(ctx, region)
+	c := NewClient(region)
 	p := processor.NewProcessor()
 	app.listener = NewListener(c, p)
 
 	return app
 }
 
-func (a *App) Run(ctx context.Context) {
-	withCancel, cancel := context.WithCancel(ctx)
+func (a *App) Run() {
+	withCancel, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	a.listener.Listen(withCancel, a.queueURL)
