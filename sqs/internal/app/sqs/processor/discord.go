@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"sqs-example/internal/app/util"
 )
@@ -27,7 +27,7 @@ func NewProcessor() *Processor {
 }
 
 func (p *Processor) ProcessMessage(ctx context.Context, m SendingMessage) error {
-	fmt.Println("message is processed by " + m.GetFrom())
+	slog.Info("message is processed by " + m.GetFrom())
 	discordPayload := map[string]string{
 		"content": m.GetMessage(),
 		"from":    m.GetFrom(),
@@ -48,7 +48,7 @@ func (p *Processor) ProcessMessage(ctx context.Context, m SendingMessage) error 
 		return fmt.Errorf("error processing event: %d %s", resp.StatusCode, string(body))
 	}
 
-	log.Printf("posted to Discord: %s", m.GetMessage())
+	slog.Info("posted to Discord", "message", m.GetMessage())
 
 	return nil
 }

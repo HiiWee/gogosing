@@ -3,7 +3,7 @@ package producer
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/sqs"
@@ -38,7 +38,7 @@ func (p *Producer) SendMessage(ctx context.Context, event *PublishEvent, queueUR
 	_, err = p.sender.SendMessage(ctx, &sqs.SendMessageInput{MessageBody: aws.String(string(payload)), QueueUrl: aws.String(queueURL)})
 
 	if err != nil {
-		log.Printf("failed to send message: %v", err)
+		slog.Error("failed to send message", err)
 		return err
 	}
 	return nil

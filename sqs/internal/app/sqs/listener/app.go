@@ -41,6 +41,7 @@ func New(ctx context.Context) *App {
 
 func (a *App) Run(ctx context.Context) {
 	withCancel, cancel := context.WithCancel(ctx)
+	defer cancel()
 
 	a.listener.Listen(withCancel, a.queueURL)
 
@@ -48,6 +49,5 @@ func (a *App) Run(ctx context.Context) {
 
 	<-a.stop
 
-	defer cancel()
 	a.lgr.Info("listener shutdown complete")
 }

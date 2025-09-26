@@ -3,7 +3,7 @@ package listener
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"log/slog"
 	"sqs-example/internal/app/sqs/processor"
 	"time"
 
@@ -47,7 +47,11 @@ func (l *Listener) listen(ctx context.Context, url string) {
 			VisibilityTimeout:   30, // seconds to process before it reappears
 		})
 		if err != nil {
-			log.Printf("ReceiveMessage error: %v", err)
+			if ctx.Err() != nil {
+				slog.Error("Listener stopped", ctx.Err())
+				return
+			}
+			slog.Error("ReceiveMessage error", err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
@@ -60,7 +64,8 @@ func (l *Listener) listen(ctx context.Context, url string) {
 			err := json.Unmarshal([]byte(*msg.Body), &event)
 
 			if err != nil {
-				log.Printf("Unmarshal error: %v", err)
+				slog.Error("Unmarshal error", err)
+				return
 			}
 			l.eventChannel <- ConsumedEvent{
 				ReceiptHandle: msg.ReceiptHandle,
@@ -89,6 +94,6 @@ func (l *Listener) processEvent(ctx context.Context, e *ConsumedEvent, url strin
 		ReceiptHandle: e.ReceiptHandle,
 	})
 	if err != nil {
-		log.Printf("Error deleting event: %v", err)
+		slog.Error("Error deleting event", err)
 	}
 }
