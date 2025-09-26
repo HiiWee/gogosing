@@ -3,7 +3,6 @@ package producer
 import (
 	"encoding/json"
 	"net/http"
-	"os"
 )
 
 func (a *App) registerRoutes() {
@@ -21,12 +20,6 @@ func (a *App) buildMessageSending() http.HandlerFunc {
 			return
 		}
 
-		url := os.Getenv("SQS_QUEUE_URL")
-		if url == "" {
-			a.lgr.Error("error getting SQS_QUEUE_URL")
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
 		err := a.producer.SendMessage(ctx, &event, a.queueURL)
 		if err != nil {
 			a.lgr.Error("failed to send message", "error", err)
