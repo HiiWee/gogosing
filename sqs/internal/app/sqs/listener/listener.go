@@ -48,10 +48,10 @@ func (l *Listener) listen(ctx context.Context, url string) {
 		})
 		if err != nil {
 			if ctx.Err() != nil {
-				slog.Error("Listener stopped", ctx.Err())
+				slog.Error("Listener stopped", "error", ctx.Err())
 				return
 			}
-			slog.Error("ReceiveMessage error", err)
+			slog.Error("ReceiveMessage error", "error", err)
 			time.Sleep(2 * time.Second)
 			continue
 		}
@@ -64,7 +64,7 @@ func (l *Listener) listen(ctx context.Context, url string) {
 			err := json.Unmarshal([]byte(*msg.Body), &event)
 
 			if err != nil {
-				slog.Error("Unmarshal error", err)
+				slog.Error("Unmarshal error", "error", err)
 				return
 			}
 			l.eventChannel <- ConsumedEvent{
@@ -88,12 +88,16 @@ func (l *Listener) process(ctx context.Context, url string) {
 
 func (l *Listener) processEvent(ctx context.Context, e *ConsumedEvent, url string) {
 	err := l.processor.ProcessMessage(ctx, &e.body)
+	if err != nil {
+		slog.Error("ProcessMessage error", "error", err)
+		return
+	}
 
 	_, err = l.receiver.DeleteMessage(ctx, &sqs.DeleteMessageInput{
 		QueueUrl:      &url,
 		ReceiptHandle: e.ReceiptHandle,
 	})
 	if err != nil {
-		slog.Error("Error deleting event", err)
+		slog.Error("Error deleting event", "error", err)
 	}
 }

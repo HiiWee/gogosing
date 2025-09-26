@@ -33,8 +33,16 @@ func (p *Processor) ProcessMessage(ctx context.Context, m SendingMessage) error 
 		"from":    m.GetFrom(),
 	}
 
-	b, _ := json.Marshal(discordPayload)
-	req, _ := http.NewRequestWithContext(ctx, http.MethodPost, p.webhookURL, bytes.NewReader(b))
+	b, err := json.Marshal(discordPayload)
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, p.webhookURL, bytes.NewReader(b))
+	if err != nil {
+		return err
+	}
+
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)
@@ -42,6 +50,7 @@ func (p *Processor) ProcessMessage(ctx context.Context, m SendingMessage) error 
 		return err
 	}
 	defer resp.Body.Close()
+
 	body, _ := io.ReadAll(resp.Body)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {

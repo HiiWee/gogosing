@@ -38,7 +38,7 @@ func (p *Producer) SendMessage(ctx context.Context, event *PublishEvent, queueUR
 	_, err = p.sender.SendMessage(ctx, &sqs.SendMessageInput{MessageBody: aws.String(string(payload)), QueueUrl: aws.String(queueURL)})
 
 	if err != nil {
-		slog.Error("failed to send message", err)
+		slog.Error("failed to send message", "error", err)
 		return err
 	}
 	return nil
