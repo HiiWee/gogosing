@@ -1,22 +1,25 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
+	"os"
+	"os/signal"
 	"runtime"
 	"sync"
+	"syscall"
 	"time"
 )
 
-func fanIn[T any](done <-chan int, channels ...<-chan T) <-chan T {
-	var wg sync.WaitGroup
+func fanIn[T any](ctx context.Context, wg *sync.WaitGroup, channels ...<-chan T) <-chan T {
 	fannedInStream := make(chan T)
 
 	transfer := func(c <-chan T) {
 		defer wg.Done()
 		for i := range c {
 			select {
-			case <-done:
+			case <-ctx.Done():
 				return
 			case fannedInStream <- i:
 			}
@@ -28,22 +31,16 @@ func fanIn[T any](done <-chan int, channels ...<-chan T) <-chan T {
 		go transfer(c)
 	}
 
-	go func() {
-		wg.Wait()
-		fmt.Println("will it be called?")
-		close(fannedInStream)
-	}()
-
 	return fannedInStream
 }
 
-func repeatFunc[T any, K any](done <-chan K, fn func() T) <-chan T {
+func repeatFunc[T any](ctx context.Context, fn func() T) <-chan T {
 	stream := make(chan T)
 	go func() {
 		defer close(stream)
 		for {
 			select {
-			case <-done:
+			case <-ctx.Done():
 				return
 			case stream <- fn():
 			}
@@ -53,14 +50,14 @@ func repeatFunc[T any, K any](done <-chan K, fn func() T) <-chan T {
 	return stream
 }
 
-func take[T any, K any](done <-chan K, stream <-chan T, n int) <-chan T {
+func take[T any](ctx context.Context, stream <-chan T, n int) <-chan T {
 	taken := make(chan T)
 
 	go func() {
 		defer close(taken)
 		for i := 0; i < n; i++ {
 			select {
-			case <-done:
+			case <-ctx.Done():
 				return
 			case taken <- <-stream:
 			}
@@ -70,7 +67,7 @@ func take[T any, K any](done <-chan K, stream <-chan T, n int) <-chan T {
 	return taken
 }
 
-func primeFinder(done <-chan int, randIntStream <-chan int) <-chan int {
+func primeFinder(ctx context.Context, randIntStream <-chan int) <-chan int {
 	isPrime := func(randomInt int) bool {
 		for i := randomInt - 1; i > 1; i-- {
 			if randomInt%i == 0 {
@@ -85,7 +82,7 @@ func primeFinder(done <-chan int, randIntStream <-chan int) <-chan int {
 		defer close(primes)
 		for {
 			select {
-			case <-done:
+			case <-ctx.Done():
 				return
 			case randomInt := <-randIntStream:
 				if isPrime(randomInt) {
@@ -101,27 +98,43 @@ func primeFinder(done <-chan int, randIntStream <-chan int) <-chan int {
 func main() {
 	start := time.Now()
 
-	done := make(chan int)
-	//defer close(done)
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
+	var wg sync.WaitGroup
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// randIntStream continuously produces random integers from randomNumberFetcher
 	randomNumberFetcher := func() int { return rand.Intn(500000000) }
-	randIntStream := repeatFunc(done, randomNumberFetcher)
+	randIntStream := repeatFunc(ctx, randomNumberFetcher)
 
-	// fan out
+	// fan out: launch multiple primeFinder goroutines to process randIntStream in parallel
 	CPUCount := runtime.NumCPU()
 	primeFinderChannels := make([]<-chan int, CPUCount)
 	for i := 0; i < CPUCount; i++ {
-		primeFinderChannels[i] = primeFinder(done, randIntStream)
+		primeFinderChannels[i] = primeFinder(ctx, randIntStream)
 	}
 
-	// fan in
-	fannedInStream := fanIn(done, primeFinderChannels...)
+	// fan in: merge all primeFinder outputs into a single channel, fannedInStream
+	fannedInStream := fanIn(ctx, &wg, primeFinderChannels...)
 
-	for rando := range take(done, fannedInStream, 10) {
+	// print all prime numbers
+	for rando := range take(ctx, fannedInStream, 10) {
 		fmt.Println(rando)
 	}
-
-	close(done)
-
 	fmt.Println(time.Since(start))
+
+	// start the graceful shutdown
+	select {
+	case <-sigChan:
+		fmt.Println("Received the shutdown signal, Shutting down gracefully...")
+		cancel()
+	}
+
+	// wait until all goroutines have finished
+	wg.Wait()
+
+	fmt.Println("Application shutdown complete.")
 }
